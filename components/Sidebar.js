@@ -4,22 +4,40 @@ import ChatIcon from '@mui/icons-material/Chat'
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import SearchIcon from '@mui/icons-material/Search';
 import * as EmailValidator from "email-validator"
+import { auth, db } from "../firebase";
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { useCollection } from "react-firebase-hooks/firestore"
+import Chat from "../components/Chat"
 
 function Sidebar() {
+    const [user] = useAuthState(auth);
+    const userChatRef = db.collection('chats').where('users', 'array-contains', user.email);
+    const [chatsSnapshot] = useCollection(userChatRef);
+
     const createChat = () => {
         const input = prompt('Please enter an email address for the user you wish to chat with')
 
         if (!input) return;
 
-        if (EmailValidator.validate(input)) {
-            // need to add chat into db
+        if (EmailValidator.validate(input)
+            && !chatAlreadyExists(input)
+            && input !== user.email) {
+            // We add the chat if it does not exist and it is valid
+            db.collection('chats').add({
+                users: [user.email, input]
+            })
         }
     }
+
+    const chatAlreadyExists = (recipientEmail) =>
+        !!chatsSnapshot?.docs.find((chat) =>
+            chat.data().users.find((user) => user === recipientEmail)?.length > 0)
+
 
     return (
         <Container>
             <Header>
-                <UserAvatar />
+                <UserAvatar src={user.photoURL} onClick={() => auth.signOut()} />
                 <IconsContainer>
                     <IconButton>
                         <ChatIcon />
@@ -37,7 +55,10 @@ function Sidebar() {
 
             <SidebarButton onClick={createChat}>Start a new chat</SidebarButton>
 
-            {/* List of Chats */}
+            {/*List of Chats*/}
+            {chatsSnapshot?.docs.map((chat) => (
+                <Chat key={chat.id} id={chat.id} users={chat.data().users} />
+            ))}
         </Container>
     );
 }
