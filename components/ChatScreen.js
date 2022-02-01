@@ -11,6 +11,7 @@ import InsertEmoticonIcon from '@mui/icons-material/InsertEmoticon';
 import MicIcon from '@mui/icons-material/Mic';
 import { useState } from "react";
 import { serverTimestamp } from 'firebase/firestore';
+import getRecipientEmail from "../utils/getRecipientEmail"
 
 function ChatScreen({ chat, messages }) {
   const [user] = useAuthState(auth);
@@ -35,6 +36,10 @@ function ChatScreen({ chat, messages }) {
           }}
         />
       ))
+    } else {
+      return JSON.parse(messages).map(message => (
+        <Message key={message.id} user={message.user} message={message} />
+      ))
     }
   }
 
@@ -55,13 +60,15 @@ function ChatScreen({ chat, messages }) {
     setInput("");
   }
 
+  const recipientEmail = getRecipientEmail(chat.users, user)
+
   return (
     <Container>
       <Header>
         <Avatar />
 
         <HeaderInformation>
-          <h3>Rec Email</h3>
+          <h3>{recipientEmail}</h3>
           <p>Last seen...</p>
         </HeaderInformation>
         <HeaderIcons>
@@ -75,7 +82,7 @@ function ChatScreen({ chat, messages }) {
       </Header>
 
       <MessageContainer>
-        {/*showMessages()*/}
+        {showMessages()}
         <EndOfMessage />
       </MessageContainer>
 
